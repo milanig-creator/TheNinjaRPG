@@ -709,8 +709,10 @@ export const NewAuctionListingDialog: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
+  // Utils 
   const utils = api.useUtils();
 
+  // Create Listing Form
   const createForm = useForm<
     z.input<typeof createAuctionListingSchema>,
     unknown,
@@ -724,6 +726,7 @@ export const NewAuctionListingDialog: React.FC = () => {
     },
   });
 
+  // Search Form for DIRECT auctions
   const maxUsers = 1;
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
@@ -731,8 +734,10 @@ export const NewAuctionListingDialog: React.FC = () => {
     defaultValues: { username: "", users: [] },
   });
 
+  // Queries
   const { data: userItems } = api.item.getUserItems.useQuery();
 
+  // Mutations
   const [itemSearchTerm, setItemSearchTerm] = useState("");
 
   const filteredItems =
@@ -778,9 +783,11 @@ export const NewAuctionListingDialog: React.FC = () => {
     name: "userItemId",
   });
 
+  // Get the selected item to check if it's stackable
   const selectedItem = filteredItems.find((item) => item.id === watchedUserItemId);
   const showQuantityInput = selectedItem?.item?.canStack && selectedItem.quantity > 1;
 
+  // Reset quantity when item selection changes
   useEffect(() => {
     if (!showQuantityInput) {
       createForm.setValue("quantity", undefined);
