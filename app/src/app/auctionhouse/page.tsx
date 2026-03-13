@@ -778,8 +778,6 @@ export const NewAuctionListingDialog: React.FC = () => {
     name: "userItemId",
   });
 
-  // ...existing code...
-
   const selectedItem = filteredItems.find((item) => item.id === watchedUserItemId);
   const showQuantityInput = selectedItem?.item?.canStack && selectedItem.quantity > 1;
 
