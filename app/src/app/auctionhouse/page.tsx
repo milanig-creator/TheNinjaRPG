@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Hammer, Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 import { api } from "@/app/_trpc/client";
@@ -705,12 +705,12 @@ const AuctionDetailsDialog: React.FC<AuctionDetailsDialogProps> = ({
 };
 
 export const NewAuctionListingDialog: React.FC = () => {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const [isOpen, setIsOpen] = useState(false);
 
-  // Utils
   const utils = api.useUtils();
 
-  // Create listing form
   const createForm = useForm<
     z.input<typeof createAuctionListingSchema>,
     unknown,
@@ -724,7 +724,6 @@ export const NewAuctionListingDialog: React.FC = () => {
     },
   });
 
-  // User search form for DIRECT auctions
   const maxUsers = 1;
   const userSearchSchema = getSearchValidator({ max: maxUsers });
   const userSearchMethods = useForm<z.infer<typeof userSearchSchema>>({
@@ -732,10 +731,26 @@ export const NewAuctionListingDialog: React.FC = () => {
     defaultValues: { username: "", users: [] },
   });
 
-  // Queries
   const { data: userItems } = api.item.getUserItems.useQuery();
 
-  // Mutations
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
+
+  const filteredItems =
+    userItems?.filter((item) => {
+      return (
+        item.item?.canBeTraded &&
+        item.equipped === "NONE" &&
+        (!item.craftingFinishedAt || new Date(item.craftingFinishedAt) < new Date()) &&
+        !item.isInAuction
+      );
+    }) || [];
+
+  const filteredItemsForDropdown = filteredItems.filter((userItem) => {
+    const name = (userItem.item?.name || "").trim().toLowerCase();
+    const search = itemSearchTerm.trim().toLowerCase();
+    return name.includes(search);
+  });
+
   const { mutate: createListing, isPending: isCreating } =
     api.auction.createAuctionListing.useMutation({
       onSuccess: async (data) => {
@@ -763,21 +778,11 @@ export const NewAuctionListingDialog: React.FC = () => {
     name: "userItemId",
   });
 
-  const filteredItems =
-    userItems?.filter((item) => {
-      return (
-        item.item?.canBeTraded &&
-        item.equipped === "NONE" &&
-        (!item.craftingFinishedAt || new Date(item.craftingFinishedAt) < new Date()) &&
-        !item.isInAuction
-      );
-    }) || [];
+  // ...existing code...
 
-  // Get the selected item to check if it's stackable
   const selectedItem = filteredItems.find((item) => item.id === watchedUserItemId);
   const showQuantityInput = selectedItem?.item?.canStack && selectedItem.quantity > 1;
 
-  // Reset quantity when item selection changes
   useEffect(() => {
     if (!showQuantityInput) {
       createForm.setValue("quantity", undefined);
@@ -795,7 +800,6 @@ export const NewAuctionListingDialog: React.FC = () => {
     };
     createListing(submissionData);
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -808,7 +812,6 @@ export const NewAuctionListingDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Create Auction Listing</DialogTitle>
         </DialogHeader>
-
         <Form {...createForm}>
           <form
             onSubmit={createForm.handleSubmit(onCreateSubmit)}
@@ -827,15 +830,45 @@ export const NewAuctionListingDialog: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredItems.map((userItem) => (
-                        <SelectItem key={userItem.id} value={userItem.id}>
-                          {userItem.item?.name}
-                          {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
-                          {userItem.imbuements && userItem.imbuements.length > 0
-                            ? ` (${userItem.imbuements.length} imbuement(s))`
-                            : ""}
-                        </SelectItem>
-                      ))}
+                      <div className="sticky top-0 z-50 bg-white px-2 pb-2 pt-2 border-b border-gray-300">
+                        <Input
+                          ref={searchInputRef}
+                          placeholder="Search your items..."
+                          value={itemSearchTerm}
+                          onChange={(e) => setItemSearchTerm(e.target.value)}
+                          className="w-full bg-white text-black border border-gray-400 font-semibold placeholder:text-gray-600 placeholder:font-bold"
+                          autoFocus
+                          onBlur={(e) => {
+                            setTimeout(() => {
+                              if (
+                                searchInputRef.current &&
+                                !document.activeElement?.classList.contains(
+                                  "select-item",
+                                )
+                              ) {
+                                searchInputRef.current.focus();
+                              }
+                            }, 10);
+                          }}
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredItemsForDropdown.length === 0 ? (
+                          <div className="px-2 py-2 text-muted-foreground text-sm">
+                            No items found
+                          </div>
+                        ) : (
+                          filteredItemsForDropdown.map((userItem) => (
+                            <SelectItem key={userItem.id} value={userItem.id}>
+                              {userItem.item?.name}
+                              {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
+                              {userItem.imbuements && userItem.imbuements.length > 0
+                                ? ` (${userItem.imbuements.length} imbuement(s))`
+                                : ""}
+                            </SelectItem>
+                          ))
+                        )}
+                      </div>
                     </SelectContent>
                   </Select>
                   <FormMessage />
