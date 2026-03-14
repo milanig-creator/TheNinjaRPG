@@ -817,8 +817,10 @@ export const NewAuctionListingDialog: React.FC = () => {
         if (!open) {
           createForm.reset();
           setItemSearchTerm("");
+          setDropdownOpen(false);
           userSearchMethods.reset();
         }
+      }}
       }}
     >
       <DialogTrigger asChild>
