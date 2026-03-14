@@ -130,7 +130,6 @@ const SelectItem = ({
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden focus:bg-slate-100 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
-    data-select-item
     {...props}
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">

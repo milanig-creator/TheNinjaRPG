@@ -113,13 +113,12 @@ interface AuctionListingProps {
 }
 
 const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
-  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   // User data
   const { timeDiff } = useRequiredUserData();
 
   // State
-  const [searchTerm, _setSearchTerm] = useState(""); // unused setter
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
@@ -255,11 +254,10 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
             <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search your items..."
-              value={itemSearchTerm}
-              onChange={(e) => setItemSearchTerm(e.target.value)}
+              placeholder="Search listings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
-              autoFocus
             />
           </div>
         </div>
@@ -711,6 +709,7 @@ export const NewAuctionListingDialog: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Utils
   const utils = api.useUtils();
@@ -811,7 +810,17 @@ export const NewAuctionListingDialog: React.FC = () => {
     createListing(submissionData);
   };
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          createForm.reset();
+          setItemSearchTerm("");
+          userSearchMethods.reset();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -836,12 +845,23 @@ export const NewAuctionListingDialog: React.FC = () => {
                   <Input
                     ref={searchInputRef}
                     placeholder="Search your items..."
-                    value={itemSearchTerm}
-                    onChange={(e) => setItemSearchTerm(e.target.value)}
+                    value={
+                      field.value
+                        ? filteredItems.find((item) => item.id === field.value)?.item
+                            ?.name || ""
+                        : itemSearchTerm
+                    }
+                    onChange={(e) => {
+                      setItemSearchTerm(e.target.value);
+                      field.onChange("");
+                    }}
+                    onFocus={() => setDropdownOpen(true)}
                     className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
                     autoFocus
                   />
-                  {itemSearchTerm !== "" || filteredItemsForDropdown.length > 0 ? (
+                  {dropdownOpen &&
+                  (itemSearchTerm !== "" ||
+                    (!field.value && filteredItemsForDropdown.length > 0)) ? (
                     <div className="mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md">
                       {filteredItemsForDropdown.length === 0 ? (
                         <div className="px-2 py-2 text-muted-foreground text-sm">
@@ -853,7 +873,11 @@ export const NewAuctionListingDialog: React.FC = () => {
                             key={userItem.id}
                             type="button"
                             className={`cursor-pointer px-2 py-2 w-full text-left hover:bg-gray-100 ${field.value === userItem.id ? "bg-gray-200" : ""}`}
-                            onClick={() => field.onChange(userItem.id)}
+                            onClick={() => {
+                              field.onChange(userItem.id);
+                              setItemSearchTerm("");
+                              setDropdownOpen(false);
+                            }}
                           >
                             {userItem.item?.name}
                             {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
@@ -865,6 +889,13 @@ export const NewAuctionListingDialog: React.FC = () => {
                       )}
                     </div>
                   ) : null}
+                  {field.value && (
+                    <div className="mt-1 text-green-700 text-sm font-semibold">
+                      Selected:{" "}
+                      {filteredItems.find((item) => item.id === field.value)?.item
+                        ?.name || ""}
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -1052,8 +1083,9 @@ export const NewAuctionListingDialog: React.FC = () => {
                 variant="outline"
                 onClick={() => {
                   setIsOpen(false);
+                  createForm.reset();
                   setItemSearchTerm("");
-                  createForm.setValue("userItemId", "");
+                  userSearchMethods.reset();
                 }}
               >
                 Cancel
