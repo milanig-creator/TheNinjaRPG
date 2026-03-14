@@ -858,6 +858,7 @@ export const NewAuctionListingDialog: React.FC = () => {
                       field.onChange("");
                     }}
                     onFocus={() => setDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
                     className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
                     autoFocus
                   />
