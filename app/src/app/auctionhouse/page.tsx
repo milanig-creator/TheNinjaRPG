@@ -113,11 +113,13 @@ interface AuctionListingProps {
 }
 
 const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   // User data
   const { timeDiff } = useRequiredUserData();
 
   // State
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, _setSearchTerm] = useState(""); // unused setter
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
@@ -252,11 +254,12 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
           <div className="relative">
             <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
             <Input
-              id="search"
-              placeholder="Search by item name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              ref={searchInputRef}
+              placeholder="Search your items..."
+              value={itemSearchTerm}
+              onChange={(e) => setItemSearchTerm(e.target.value)}
+              className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
+              autoFocus
             />
           </div>
         </div>
@@ -709,7 +712,7 @@ export const NewAuctionListingDialog: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Utils 
+  // Utils
   const utils = api.useUtils();
 
   // Create Listing Form
@@ -763,6 +766,8 @@ export const NewAuctionListingDialog: React.FC = () => {
         if (data.success) {
           setIsOpen(false);
           createForm.reset();
+          setItemSearchTerm("");
+          createForm.setValue("userItemId", "");
           userSearchMethods.reset();
           await Promise.all([
             utils.auction.getAuctionListings.invalidate(),
@@ -828,54 +833,38 @@ export const NewAuctionListingDialog: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item to List</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an item to list" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <div className="sticky top-0 z-50 bg-white px-2 pb-2 pt-2 border-b border-gray-300">
-                        <Input
-                          ref={searchInputRef}
-                          placeholder="Search your items..."
-                          value={itemSearchTerm}
-                          onChange={(e) => setItemSearchTerm(e.target.value)}
-                          className="w-full bg-white text-black border border-gray-400 font-semibold placeholder:text-gray-600 placeholder:font-bold"
-                          autoFocus
-                          onBlur={(e) => {
-                            setTimeout(() => {
-                              if (
-                                searchInputRef.current &&
-                                !document.activeElement?.classList.contains(
-                                  "select-item",
-                                )
-                              ) {
-                                searchInputRef.current.focus();
-                              }
-                            }, 10);
-                          }}
-                        />
-                      </div>
-                      <div className="max-h-60 overflow-y-auto">
-                        {filteredItemsForDropdown.length === 0 ? (
-                          <div className="px-2 py-2 text-muted-foreground text-sm">
-                            No items found
-                          </div>
-                        ) : (
-                          filteredItemsForDropdown.map((userItem) => (
-                            <SelectItem key={userItem.id} value={userItem.id}>
-                              {userItem.item?.name}
-                              {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
-                              {userItem.imbuements && userItem.imbuements.length > 0
-                                ? ` (${userItem.imbuements.length} imbuement(s))`
-                                : ""}
-                            </SelectItem>
-                          ))
-                        )}
-                      </div>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Search your items..."
+                    value={itemSearchTerm}
+                    onChange={(e) => setItemSearchTerm(e.target.value)}
+                    className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
+                    autoFocus
+                  />
+                  {itemSearchTerm !== "" || filteredItemsForDropdown.length > 0 ? (
+                    <div className="mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md">
+                      {filteredItemsForDropdown.length === 0 ? (
+                        <div className="px-2 py-2 text-muted-foreground text-sm">
+                          No items found
+                        </div>
+                      ) : (
+                        filteredItemsForDropdown.map((userItem) => (
+                          <button
+                            key={userItem.id}
+                            type="button"
+                            className={`cursor-pointer px-2 py-2 w-full text-left hover:bg-gray-100 ${field.value === userItem.id ? "bg-gray-200" : ""}`}
+                            onClick={() => field.onChange(userItem.id)}
+                          >
+                            {userItem.item?.name}
+                            {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
+                            {userItem.imbuements && userItem.imbuements.length > 0
+                              ? ` (${userItem.imbuements.length} imbuement(s))`
+                              : ""}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -1058,7 +1047,15 @@ export const NewAuctionListingDialog: React.FC = () => {
               <Button type="submit" disabled={isCreating}>
                 {isCreating ? <Loader size={20} /> : "Create Listing"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsOpen(false);
+                  setItemSearchTerm("");
+                  createForm.setValue("userItemId", "");
+                }}
+              >
                 Cancel
               </Button>
             </div>
