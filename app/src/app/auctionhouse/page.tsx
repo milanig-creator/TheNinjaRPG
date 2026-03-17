@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -34,6 +42,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -850,61 +859,72 @@ export const NewAuctionListingDialog: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item to List</FormLabel>
-                  <Input
-                    id="user-item-search"
-                    ref={searchInputRef}
-                    placeholder="Search your items..."
-                    value={
-                      dropdownOpen || !field.value
-                        ? itemSearchTerm
-                        : filteredItems.find((item) => item.id === field.value)?.item
-                            ?.name || ""
-                    }
-                    onChange={(e) => {
-                      // If an item is selected, clear selection and start a fresh search
-                      if (field.value) {
-                        field.onChange("");
-                      }
-                      setItemSearchTerm(e.target.value);
-                    }}
-                    onFocus={() => setDropdownOpen(true)}
-                    onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
-                    className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
-                  />
-                  {/* Dropdown should be rendered immediately after input, inside a relative container */}
-                  <div className="relative">
-                    {dropdownOpen ? (
-                      <div
-                        className="absolute left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md"
-                        style={{ top: "100%" }}
-                      >
-                        {filteredItemsForDropdown.length === 0 ? (
-                          <div className="px-2 py-2 text-muted-foreground text-sm">
-                            No items found
-                          </div>
-                        ) : (
-                          filteredItemsForDropdown.map((userItem) => (
-                            <button
-                              key={userItem.id}
-                              type="button"
-                              className={`w-full cursor-pointer px-2 py-2 text-left hover:bg-gray-100 ${field.value === userItem.id ? "bg-gray-200" : ""}`}
-                              onClick={() => {
-                                field.onChange(userItem.id);
-                                setItemSearchTerm("");
-                                setDropdownOpen(false);
-                              }}
-                            >
-                              {userItem.item?.name}
-                              {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
-                              {userItem.imbuements && userItem.imbuements.length > 0
-                                ? ` (${userItem.imbuements.length} imbuement(s))`
-                                : ""}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
+                  <Popover open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Input
+                          id="user-item-search"
+                          ref={searchInputRef}
+                          role="combobox"
+                          aria-expanded={dropdownOpen}
+                          placeholder="Search your items..."
+                          value={
+                            dropdownOpen || !field.value
+                              ? itemSearchTerm
+                              : filteredItems.find((item) => item.id === field.value)
+                                  ?.item?.name || ""
+                          }
+                          onChange={(e) => {
+                            if (field.value) {
+                              field.onChange("");
+                            }
+                            setItemSearchTerm(e.target.value);
+                          }}
+                          onFocus={() => setDropdownOpen(true)}
+                          // Remove blur handler, let Popover manage focus
+                          className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
+                        />
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search your items..."
+                          value={itemSearchTerm}
+                          onValueChange={setItemSearchTerm}
+                          className="h-9"
+                        />
+                        <CommandList>
+                          {filteredItemsForDropdown.length === 0 ? (
+                            <CommandEmpty>No items found</CommandEmpty>
+                          ) : (
+                            <CommandGroup>
+                              {filteredItemsForDropdown.map((userItem) => (
+                                <CommandItem
+                                  key={userItem.id}
+                                  value={userItem.item?.name || ""}
+                                  keywords={[userItem.item?.name || ""]}
+                                  onSelect={() => {
+                                    field.onChange(userItem.id);
+                                    setItemSearchTerm("");
+                                    setDropdownOpen(false);
+                                  }}
+                                >
+                                  {userItem.item?.name}
+                                  {userItem.quantity > 1
+                                    ? ` (${userItem.quantity})`
+                                    : ""}
+                                  {userItem.imbuements && userItem.imbuements.length > 0
+                                    ? ` (${userItem.imbuements.length} imbuement(s))`
+                                    : ""}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {field.value && (
                     <div className="mt-1 font-semibold text-green-700 text-sm">
                       Selected:{" "}
