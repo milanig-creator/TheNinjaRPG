@@ -258,7 +258,7 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
               placeholder="Search listings..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
+              className="pl-10 mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
             />
           </div>
         </div>
@@ -774,6 +774,8 @@ export const NewAuctionListingDialog: React.FC = () => {
         if (data.success) {
           setIsOpen(false);
           createForm.reset();
+          setItemSearchTerm("");
+          setDropdownOpen(false);
           userSearchMethods.reset();
           await Promise.all([
             utils.auction.getAuctionListings.invalidate(),
