@@ -855,14 +855,17 @@ export const NewAuctionListingDialog: React.FC = () => {
                     ref={searchInputRef}
                     placeholder="Search your items..."
                     value={
-                      field.value
-                        ? filteredItems.find((item) => item.id === field.value)?.item
+                      dropdownOpen || !field.value
+                        ? itemSearchTerm
+                        : filteredItems.find((item) => item.id === field.value)?.item
                             ?.name || ""
-                        : itemSearchTerm
                     }
                     onChange={(e) => {
+                      // If an item is selected, clear selection and start a fresh search
+                      if (field.value) {
+                        field.onChange("");
+                      }
                       setItemSearchTerm(e.target.value);
-                      field.onChange("");
                     }}
                     onFocus={() => setDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
