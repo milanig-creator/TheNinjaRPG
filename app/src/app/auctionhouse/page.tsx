@@ -253,6 +253,7 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
           <div className="relative">
             <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
             <Input
+              id="search"
               ref={searchInputRef}
               placeholder="Search listings..."
               value={searchTerm}
@@ -867,7 +868,7 @@ export const NewAuctionListingDialog: React.FC = () => {
                     onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
                     className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
                   />
-                  {dropdownOpen && filteredItemsForDropdown.length > 0 ? (
+                  {dropdownOpen ? (
                     <div className="mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md">
                       {filteredItemsForDropdown.length === 0 ? (
                         <div className="px-2 py-2 text-muted-foreground text-sm">
