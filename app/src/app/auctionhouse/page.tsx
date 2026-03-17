@@ -114,7 +114,6 @@ interface AuctionListingProps {
 
 const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
   // User data
   const { timeDiff } = useRequiredUserData();
 
@@ -254,7 +253,6 @@ const AuctionListing: React.FC<AuctionListingProps> = ({ selectedStatus }) => {
             <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="search"
-              ref={searchInputRef}
               placeholder="Search listings..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -870,34 +868,40 @@ export const NewAuctionListingDialog: React.FC = () => {
                     onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
                     className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
                   />
-                  {dropdownOpen ? (
-                    <div className="mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md">
-                      {filteredItemsForDropdown.length === 0 ? (
-                        <div className="px-2 py-2 text-muted-foreground text-sm">
-                          No items found
-                        </div>
-                      ) : (
-                        filteredItemsForDropdown.map((userItem) => (
-                          <button
-                            key={userItem.id}
-                            type="button"
-                            className={`w-full cursor-pointer px-2 py-2 text-left hover:bg-gray-100 ${field.value === userItem.id ? "bg-gray-200" : ""}`}
-                            onClick={() => {
-                              field.onChange(userItem.id);
-                              setItemSearchTerm("");
-                              setDropdownOpen(false);
-                            }}
-                          >
-                            {userItem.item?.name}
-                            {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
-                            {userItem.imbuements && userItem.imbuements.length > 0
-                              ? ` (${userItem.imbuements.length} imbuement(s))`
-                              : ""}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  ) : null}
+                  {/* Dropdown should be rendered immediately after input, inside a relative container */}
+                  <div className="relative">
+                    {dropdownOpen ? (
+                      <div
+                        className="absolute left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded border border-gray-300 bg-white shadow-md"
+                        style={{ top: "100%" }}
+                      >
+                        {filteredItemsForDropdown.length === 0 ? (
+                          <div className="px-2 py-2 text-muted-foreground text-sm">
+                            No items found
+                          </div>
+                        ) : (
+                          filteredItemsForDropdown.map((userItem) => (
+                            <button
+                              key={userItem.id}
+                              type="button"
+                              className={`w-full cursor-pointer px-2 py-2 text-left hover:bg-gray-100 ${field.value === userItem.id ? "bg-gray-200" : ""}`}
+                              onClick={() => {
+                                field.onChange(userItem.id);
+                                setItemSearchTerm("");
+                                setDropdownOpen(false);
+                              }}
+                            >
+                              {userItem.item?.name}
+                              {userItem.quantity > 1 ? ` (${userItem.quantity})` : ""}
+                              {userItem.imbuements && userItem.imbuements.length > 0
+                                ? ` (${userItem.imbuements.length} imbuement(s))`
+                                : ""}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                   {field.value && (
                     <div className="mt-1 font-semibold text-green-700 text-sm">
                       Selected:{" "}
