@@ -867,6 +867,7 @@ export const NewAuctionListingDialog: React.FC = () => {
                           ref={searchInputRef}
                           role="combobox"
                           aria-expanded={dropdownOpen}
+                          aria-controls="user-item-list"
                           placeholder="Search your items..."
                           value={field.value ? selectedItem?.item?.name || "" : ""}
                           readOnly
@@ -899,7 +900,6 @@ export const NewAuctionListingDialog: React.FC = () => {
                                 <CommandItem
                                   key={userItem.id}
                                   value={userItem.item?.name || ""}
-                                  keywords={[userItem.item?.name || ""]}
                                   onSelect={() => {
                                     field.onChange(userItem.id);
                                     setItemSearchTerm("");
