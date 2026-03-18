@@ -868,30 +868,26 @@ export const NewAuctionListingDialog: React.FC = () => {
                           role="combobox"
                           aria-expanded={dropdownOpen}
                           placeholder="Search your items..."
-                          value={
-                            dropdownOpen || !field.value
-                              ? itemSearchTerm
-                              : filteredItems.find((item) => item.id === field.value)
-                                  ?.item?.name || ""
-                          }
-                          onChange={(e) => {
-                            if (field.value) {
-                              field.onChange("");
-                            }
-                            setItemSearchTerm(e.target.value);
-                          }}
+                          value={field.value ? selectedItem?.item?.name || "" : ""}
+                          readOnly
                           onFocus={() => setDropdownOpen(true)}
-                          // Remove blur handler, let Popover manage focus
-                          className="mb-2 w-full border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
+                          onClick={() => setDropdownOpen(true)}
+                          className="mb-2 w-full cursor-text border border-gray-400 bg-white font-semibold text-black placeholder:font-bold placeholder:text-gray-600"
                         />
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                       <Command shouldFilter={false}>
                         <CommandInput
                           placeholder="Search your items..."
                           value={itemSearchTerm}
-                          onValueChange={setItemSearchTerm}
+                          onValueChange={(value) => {
+                            if (field.value) {
+                              field.onChange("");
+                            }
+                            setItemSearchTerm(value);
+                          }}
                           className="h-9"
                         />
                         <CommandList>
@@ -925,13 +921,13 @@ export const NewAuctionListingDialog: React.FC = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
+
                   {field.value && (
                     <div className="mt-1 font-semibold text-green-700 text-sm">
-                      Selected:{" "}
-                      {filteredItems.find((item) => item.id === field.value)?.item
-                        ?.name || ""}
+                      Selected: {selectedItem?.item?.name || ""}
                     </div>
                   )}
+
                   <FormMessage />
                 </FormItem>
               )}
