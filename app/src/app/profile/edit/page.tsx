@@ -1,6 +1,8 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ALLOWED_USER_COLORS, getContrastTextColor } from "@/drizzle/userAllowedColors";
+
+("use client");
+
 import {
   Ban,
   BarChart3,
@@ -8,10 +10,7 @@ import {
   ChevronsRight,
   Dices,
   Droplets,
-  Heart,
-  History,
   Mail,
-  PenLine,
   RotateCcw,
   SendHorizontal,
   Settings,
@@ -27,7 +26,6 @@ import {
   Trash2,
   Trophy,
   Type,
-  Upload,
   Users,
   Zap,
 } from "lucide-react";
@@ -86,7 +84,6 @@ import Loader from "@/layout/Loader";
 import Modal2 from "@/layout/Modal2";
 import NindoChange from "@/layout/NindoChange";
 import DistributeStatsForm from "@/layout/StatsDistributionForm";
-import UserBlacklistControl from "@/layout/UserBlacklistControl";
 import UserRequestSystem from "@/layout/UserRequestSystem";
 import UserSearchSelect from "@/layout/UserSearchSelect";
 import {
@@ -144,17 +141,92 @@ import {
 } from "@/validators/user";
 
 export default function EditProfile() {
-  // State
+  // All hooks/state at the top
   const { data: userData } = useRequiredUserData();
   const [activeElement, setActiveElement] = useState("AI Avatar");
+  const [nameColor, setNameColor] = useState<string | null>(null);
+  const [titleColor, setTitleColor] = useState<string | null>(null);
+  const [savingColor, setSavingColor] = useState(false);
+  const utils = api.useUtils();
   const { data: emailReminder } = api.misc.getPersonalEmailReminder.useQuery();
-
-  // Loaders
-  if (!userData) return <Loader explanation="Loading profile page..." />;
-
   // Derived
-  const activeElements = getUserElements(userData);
-
+  const activeElements = userData ? getUserElements(userData) : [];
+  // Effects
+  useEffect(() => {
+    if (userData) {
+      setNameColor(userData.nameColor ?? null);
+      setTitleColor(userData.titleColor ?? null);
+    }
+  }, [userData?.nameColor, userData?.titleColor, userData]);
+  // Mutations
+  const { mutate: changeNameTitleColor } = api.profile.changeNameTitleColor.useMutation(
+    {
+      onSuccess: async (data) => {
+        showMutationToast(data);
+        setSavingColor(false);
+        if (data.success) {
+          await utils.profile.getUser.invalidate();
+        }
+      },
+      onMutate: () => setSavingColor(true),
+      onError: () => setSavingColor(false),
+    },
+  );
+  // Wait for userData before rendering anything that uses it
+  if (!userData) return <Loader explanation="Loading profile page..." />;
+  // Helpers
+  function getDefaultNameColor() {
+    return "#111827";
+  }
+  function renderColorSelect(
+    label: string,
+    value: string | null,
+    setValue: (v: string | null) => void,
+    defaultColor: string,
+  ) {
+    return (
+      <div className="mb-4">
+        <Label className="mb-1 block">{label}</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className={`flex h-10 w-10 items-center justify-center rounded border-2 border-dashed ${value === null ? "ring-2 ring-blue-500" : ""}`}
+            onClick={() => setValue(null)}
+            title="Reset to default color"
+          >
+            <span className="text-xs">Default</span>
+          </button>
+          {ALLOWED_USER_COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              className={`flex h-10 w-10 items-center justify-center rounded border-2 ${value === color ? "ring-2 ring-blue-500" : ""}`}
+              style={{ backgroundColor: color }}
+              onClick={() => setValue(color)}
+              title={color}
+            >
+              {value === color && <span className="font-bold text-white">✓</span>}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2">
+          <span
+            className="rounded px-3 py-1"
+            style={{
+              backgroundColor: value || defaultColor,
+              color: getContrastTextColor(value || defaultColor),
+              border: "1px solid #ccc",
+            }}
+          >
+            {label === "Name Color"
+              ? userData?.username || "Username"
+              : userData?.customTitle || "Title"}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  // (Removed duplicate helpers)
   return (
     <ContentBox
       title="Edit Profile"
@@ -163,61 +235,50 @@ export default function EditProfile() {
       padding={false}
     >
       <div className="grid grid-cols-1">
+        {/* Name/Title Color Section */}
         <Accordion
-          title="AI Avatar"
+          title="Name & Title Color"
           selectedTitle={activeElement}
-          unselectedSubtitle="Generate a new avatar"
+          unselectedSubtitle="Change your name and title color (costs 10 rep per change)"
           icon={Sparkles}
           onClick={setActiveElement}
         >
-          <NewAiAvatar />
+          <div className="mb-4">
+            {renderColorSelect(
+              "Name Color",
+              nameColor,
+              setNameColor,
+              getDefaultNameColor(),
+            )}
+            {renderColorSelect(
+              "Title Color",
+              titleColor,
+              setTitleColor,
+              getDefaultNameColor(),
+            )}
+            <Button
+              className="mt-2"
+              disabled={
+                savingColor ||
+                (nameColor === (userData?.nameColor ?? null) &&
+                  titleColor === (userData?.titleColor ?? null))
+              }
+              onClick={() => {
+                changeNameTitleColor({
+                  nameColor: nameColor ?? undefined,
+                  titleColor: titleColor ?? undefined,
+                });
+              }}
+            >
+              {savingColor ? "Saving..." : "Save Color Changes"}
+            </Button>
+            <div className="mt-2 text-muted-foreground text-xs">
+              Reserved staff and federal support colors are not available. Reset to
+              default to use your role/federal color.
+            </div>
+          </div>
         </Accordion>
-        <Accordion
-          title="Previous Avatar"
-          selectedTitle={activeElement}
-          unselectedSubtitle="Choose an old avatar"
-          icon={History}
-          onClick={setActiveElement}
-        >
-          <HistoricalAiAvatar contentType="user" />
-        </Accordion>
-        <Accordion
-          title="Custom Avatar"
-          selectedTitle={activeElement}
-          unselectedSubtitle="Upload a custom avatar"
-          selectedSubtitle={`Avatar size is limited based on federal support status`}
-          icon={Upload}
-          onClick={setActiveElement}
-        >
-          <AvatarChange />
-        </Accordion>
-        <Accordion
-          title="User Blacklist"
-          selectedTitle={activeElement}
-          unselectedSubtitle="Filter away toxic profiles from your feeds"
-          icon={Ban}
-          onClick={setActiveElement}
-        >
-          <UserBlacklistControl />
-        </Accordion>
-        <Accordion
-          title="Nindo"
-          selectedTitle={activeElement}
-          unselectedSubtitle="Your personal way of the ninja"
-          icon={PenLine}
-          onClick={setActiveElement}
-        >
-          <OwnNindoChange />
-        </Accordion>
-        <Accordion
-          title="Marriage"
-          selectedTitle={activeElement}
-          unselectedSubtitle="Manage Marriage"
-          icon={Heart}
-          onClick={setActiveElement}
-        >
-          <Marriage />
-        </Accordion>
+
         <Accordion
           title="Activity Rewards"
           selectedTitle={activeElement}
@@ -686,7 +747,7 @@ const BattleSettingsEdit: React.FC<{ userId: string }> = ({ userId }) => {
 /**
  * Marriage
  */
-const Marriage: React.FC = () => {
+const _Marriage: React.FC = () => {
   // tRPC utility
   const utils = api.useUtils();
 
@@ -813,7 +874,7 @@ const Marriage: React.FC = () => {
 /**
  * AI Avatar Change
  */
-const NewAiAvatar: React.FC = () => {
+const _NewAiAvatar: React.FC = () => {
   // Queries & mutations
   const { data: userData } = useRequiredUserData();
 
@@ -1330,7 +1391,7 @@ const ResetStats: React.FC = () => {
 /**
  * Avatar change component
  */
-const AvatarChange: React.FC = () => {
+const _AvatarChange: React.FC = () => {
   // State
   const { data: userData } = useRequiredUserData();
   const utils = api.useUtils();
@@ -1535,7 +1596,7 @@ const AttributeChange: React.FC = () => {
 /**
  * Nindo change component
  */
-const OwnNindoChange: React.FC = () => {
+const _OwnNindoChange: React.FC = () => {
   // State
   const { data: userData } = useRequiredUserData();
   const utils = api.useUtils();

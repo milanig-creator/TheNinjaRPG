@@ -1964,6 +1964,8 @@ export const userData = mysqlTable(
     nRecruited: int("nRecruited").default(0).notNull(),
     lastIp: varchar("lastIp", { length: 191 }),
     username: varchar("username", { length: 191 }).notNull(),
+    nameColor: varchar("nameColor", { length: 16 }).default("").notNull(),
+    titleColor: varchar("titleColor", { length: 16 }).default("").notNull(),
     gender: varchar("gender", { length: 191 }).notNull(),
     curHealth: smallint("curHealth", { unsigned: true }).default(100).notNull(),
     maxHealth: smallint("maxHealth", { unsigned: true }).default(100).notNull(),

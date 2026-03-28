@@ -83,6 +83,7 @@ import {
   village,
   war,
 } from "@/drizzle/schema";
+import { isReservedNameColor, RESERVED_NAME_COLORS } from "@/drizzle/userColors";
 import { getReskinnedBloodline } from "@/libs/bloodline";
 import {
   getGameSetting,
@@ -171,6 +172,64 @@ import {
 const pusher = getServerPusher();
 
 export const profileRouter = createTRPCRouter({
+  // Change name/title color
+  changeNameTitleColor: protectedProcedure
+    .input(
+      z.object({
+        nameColor: z
+          .string()
+          .regex(/^#[0-9A-Fa-f]{6}$/)
+          .optional(),
+        titleColor: z
+          .string()
+          .regex(/^#[0-9A-Fa-f]{6}$/)
+          .optional(),
+      }),
+    )
+    .output(baseServerResponse)
+    .mutation(async ({ ctx, input }) => {
+      const user = await fetchUser(ctx.drizzle, ctx.userId);
+      if (user.isBanned) return errorResponse("You are banned");
+      const changes: string[] = [];
+      const update: Record<string, string> = {};
+      let repCost = 0;
+      if (input.nameColor && input.nameColor !== user.nameColor) {
+        if (isReservedNameColor(input.nameColor)) {
+          return errorResponse("This name color is reserved for staff/roles.");
+        }
+        update.nameColor = input.nameColor;
+        changes.push(`nameColor: ${user.nameColor} → ${input.nameColor}`);
+        repCost += 10;
+      }
+      if (input.titleColor && input.titleColor !== user.titleColor) {
+        if (isReservedNameColor(input.titleColor)) {
+          return errorResponse("This title color is reserved for staff/roles.");
+        }
+        update.titleColor = input.titleColor;
+        changes.push(`titleColor: ${user.titleColor} → ${input.titleColor}`);
+        repCost += 10;
+      }
+      if (!changes.length) {
+        return errorResponse("No color changes requested.");
+      }
+      if (user.reputationPoints < repCost) {
+        return errorResponse("Not enough reputation points.");
+      }
+      await ctx.drizzle
+        .update(userData)
+        .set({ ...update, reputationPoints: sql`reputationPoints - ${repCost}` })
+        .where(eq(userData.userId, ctx.userId));
+      await ctx.drizzle.insert(actionLog).values({
+        id: nanoid(),
+        userId: ctx.userId,
+        tableName: "user",
+        changes,
+        relatedId: ctx.userId,
+        relatedMsg: `Changed name/title color(s)`,
+        relatedImage: user.avatarLight,
+      });
+      return { success: true, message: `Color(s) updated! (-${repCost} rep)` };
+    }),
   // Update battle description setting
   updateBattleDescription: protectedProcedure
     .meta({
